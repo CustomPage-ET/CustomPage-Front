@@ -44,17 +44,52 @@ export default function HomePage() {
     }
   };
 
+  const loadDataFromBackend = async () => {
+    try {
+      const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiURL}/api/config`);
+      if (!response.ok) throw new Error('Backend inalcanzable');
+
+      const data = await response.json();
+      if (data) {
+        setSiteName(data.siteName || 'Tu catálogo digital');
+        setLogoUrl(data.logoUrl || '/logo-clean.png');
+        setBgImage(data.bgImage || '');
+        setButtonColor(data.buttonColor || '#8EB8B2');
+        setMainTextColor(data.mainTextColor || '#1F2937');
+        setBoxBgColor(data.boxBgColor || '#FFFFFF');
+        setFontSize(data.fontSize || '16px');
+        setFontColor(data.fontColor || '#4B5563');
+        setFontFamily(data.fontFamily === 'Playfair Display' ? 'serif' : 'sans-serif');
+        return true;
+      }
+    } catch (error) {
+      console.warn("API Gateway no responde, usando datos mockeados (LocalStorage):", error);
+      return false;
+    }
+    return false;
+  };
+
   useEffect(() => {
-    syncLocalStorageData();
+    // Intentar cargar primero del Backend, si falla activa el fallback de LocalStorage
+    loadDataFromBackend().then((success) => {
+      if (!success) {
+        syncLocalStorageData();
+      }
+    });
 
     const handleStorageChange = () => {
-      syncLocalStorageData();
+      loadDataFromBackend().then((success) => {
+        if (!success) syncLocalStorageData();
+      });
     };
     window.addEventListener('storage', handleStorageChange);
 
     // Intervalo de alta prioridad para forzar re-renderizado reactivo en la Home
     const interval = setInterval(() => {
-      syncLocalStorageData();
+      loadDataFromBackend().then((success) => {
+        if (!success) syncLocalStorageData();
+      });
     }, 200);
 
     return () => {

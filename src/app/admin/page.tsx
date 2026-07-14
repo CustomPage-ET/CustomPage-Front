@@ -45,7 +45,36 @@ export default function HomePage() {
   };
 
   useEffect(() => {
+    // 1. Carga inicial desde LocalStorage
     syncLocalStorageData();
+
+    // 2. Intentar descargar personalizaciones globales del Microservicio CMS / Configuración
+    const fetchGlobalConfig = async () => {
+      try {
+        const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+        const response = await fetch(`${apiURL}/api/config/global`);
+
+        if (response.ok) {
+          const config = await response.json();
+
+          if (config.siteName) localStorage.setItem('web_site_name', config.siteName);
+          if (config.logoUrl) localStorage.setItem('web_logo', config.logoUrl);
+          if (config.bgImage) localStorage.setItem('web_bg_img', config.bgImage);
+          if (config.buttonColor) localStorage.setItem('web_button_color', config.buttonColor);
+          if (config.mainTextColor) localStorage.setItem('web_main_text_color', config.mainTextColor);
+          if (config.boxBgColor) localStorage.setItem('web_box_bg_color', config.boxBgColor);
+          if (config.fontSize) localStorage.setItem('web_font_size', config.fontSize);
+          if (config.fontColor) localStorage.setItem('web_font_color', config.fontColor);
+          if (config.fontFamily) localStorage.setItem('web_font', config.fontFamily);
+
+          syncLocalStorageData();
+        }
+      } catch (error) {
+        console.warn("API Gateway para CMS/Configuración inalcanzable. Utilizando personalizaciones locales en LocalStorage:", error);
+      }
+    };
+
+    fetchGlobalConfig();
 
     const handleStorageChange = () => {
       syncLocalStorageData();
@@ -89,7 +118,6 @@ export default function HomePage() {
             className="h-11 object-contain mix-blend-multiply"
           />
         </div>
-        {/* Usamos un botón nativo HTML para garantizar que el inline style no sea pisado por el componente ui/Button */}
         <button
           onClick={() => setShowAccessModal(true)}
           className="px-5 py-2 rounded-full text-white font-bold text-xs shadow-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer"

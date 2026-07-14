@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 
 interface Producto {
@@ -25,8 +25,37 @@ export default function TiendaPage() {
   const { addToCart } = useCart();
   const [search, setSearch] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Producto | null>(null);
+  const [productos, setProductos] = useState<Producto[]>(MOCK_PRODUCTOS);
 
-  const filtered = MOCK_PRODUCTOS.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+  useEffect(() => {
+    const fetchProductos = async () => {
+      try {
+        const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+        const response = await fetch(`${apiURL}/api/products`);
+        if (!response.ok) throw new Error('Error al conectar con el servidor de productos');
+
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const mappedData = data.map((p: any) => ({
+            id: p.id || String(p.productId),
+            name: p.name || p.nombre,
+            stock: Number(p.stock !== undefined ? p.stock : 10),
+            price: Number(p.price || p.precio),
+            description: p.description || p.descripcion || 'Sin descripción disponible.',
+            imageUrl: p.imageUrl || p.imagenUrl || 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=300'
+          }));
+          setProductos(mappedData);
+        }
+      } catch (error) {
+        console.warn("API Gateway inalcanzable para catálogo general. Utilizando respaldo mockeado:", error);
+        setProductos(MOCK_PRODUCTOS);
+      }
+    };
+
+    fetchProductos();
+  }, []);
+
+  const filtered = productos.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="w-full flex flex-col md:flex-row gap-8 items-start">

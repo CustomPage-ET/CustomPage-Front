@@ -35,23 +35,80 @@ export default function TiendaLayout({ children }: { children: React.ReactNode }
   const [editAvatar, setEditAvatar] = useState(customer.avatarUrl || '');
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedUser = localStorage.getItem('user');
-      if (savedUser) {
-        const parsed = JSON.parse(savedUser);
-        setCustomer(prev => ({ ...prev, ...parsed }));
-        setEditPhone(parsed.phone || prev.phone);
-        setEditAddress(parsed.address || prev.address);
-        setEditAvatar(parsed.avatarUrl || '');
+    const fetchProfile = async () => {
+      if (typeof window !== 'undefined') {
+        const savedUser = localStorage.getItem('user');
+        const token = localStorage.getItem('token');
+
+        if (savedUser) {
+          const parsed = JSON.parse(savedUser);
+          setCustomer(prev => {
+            const updated = { ...prev, ...parsed };
+            setEditPhone(parsed.phone || prev.phone);
+            setEditAddress(parsed.address || prev.address);
+            setEditAvatar(parsed.avatarUrl || '');
+            return updated;
+          });
+        }
+
+        // Intentar sincronizar datos en tiempo real con el backend de autenticación
+        try {
+          const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+          const response = await fetch(`${apiURL}/api/auth/me`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const serverUserData = await response.json();
+            setCustomer(prev => ({ ...prev, ...serverUserData }));
+            setEditPhone(serverUserData.phone || editPhone);
+            setEditAddress(serverUserData.address || editAddress);
+            setEditAvatar(serverUserData.avatarUrl || '');
+            localStorage.setItem('user', JSON.stringify({ ...JSON.parse(savedUser || '{}'), ...serverUserData }));
+          }
+        } catch (error) {
+          console.warn("API Gateway inalcanzable. Usando sesión local de LocalStorage:", error);
+        }
       }
-    }
+    };
+
+    fetchProfile();
   }, []);
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     const updated = { ...customer, phone: editPhone, address: editAddress, avatarUrl: editAvatar };
+
+    // Guardar localmente de inmediato (Fallback rápido)
     setCustomer(updated);
     localStorage.setItem('user', JSON.stringify(updated));
     setIsEditing(false);
+
+    // Intentar actualizar en el servidor backend
+    try {
+      const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`${apiURL}/api/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          phone: editPhone,
+          address: editAddress,
+          avatarUrl: editAvatar
+        })
+      });
+
+      if (!response.ok) throw new Error('Error al actualizar el perfil en el servidor');
+    } catch (error) {
+      console.warn("No se pudo sincronizar la actualización del perfil con el servidor. Modo offline activado:", error);
+    }
   };
 
   const handleLogout = () => {

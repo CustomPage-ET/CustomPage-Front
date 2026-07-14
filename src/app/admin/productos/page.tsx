@@ -52,13 +52,14 @@ export default function GestionarProductosPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Estados de control para la barra lateral
   const [isSearching, setIsSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDeleteMode, setIsDeleteMode] = useState(false);
 
-  // CONTROL DE MODALES (Evita rutas 404 al integrarlos en la misma vista)
+  // CONTROL DE MODALES
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -75,22 +76,27 @@ export default function GestionarProductosPage() {
     category: 'Ampoules'
   });
 
-  const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+  const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:8080';
 
-  // Carga de productos
+  // Carga de productos desde el servidor
   const fetchProducts = async () => {
+    setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${gatewayUrl}/products`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       if (!response.ok) throw new Error('Error al conectar');
       const data = await response.json();
       setProducts(data.length > 0 ? data : PRESET_PRODUCTS);
     } catch (err) {
+      console.warn("Servidor inalcanzable. Usando catálogo provisional local.");
       setProducts(PRESET_PRODUCTS);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -98,47 +104,91 @@ export default function GestionarProductosPage() {
     fetchProducts();
   }, []);
 
-  // Incremento/Decremento de stock (+ / -)
-  const handleUpdateStock = (id: string, increment: number) => {
+  // Incremento/Decremento de stock persistido en backend
+  const handleUpdateStock = async (id: string, increment: number) => {
+    const targetProduct = products.find(p => p.id === id);
+    if (!targetProduct) return;
+
+    const newStock = Math.max(0, targetProduct.stock + increment);
+
+    // Actualización optimista
     setProducts(prev =>
-      prev.map(p => {
-        if (p.id === id) {
-          const newStock = Math.max(0, p.stock + increment);
-          return { ...p, stock: newStock };
-        }
-        return p;
-      })
+      prev.map(p => p.id === id ? { ...p, stock: newStock } : p)
     );
-    triggerNotification('Stock actualizado localmente.');
+    triggerNotification('Stock actualizado.');
+
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${gatewayUrl}/products/${id}/stock`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ stock: newStock })
+      });
+    } catch (err) {
+      console.error("Error al sincronizar stock en el servidor:", err);
+    }
   };
 
-  // Crear o Editar Producto (Local con simulación de persistencia)
-  const handleSaveProduct = (e: React.FormEvent) => {
+  // Crear o Editar Producto en el Servidor
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    const token = localStorage.getItem('token');
+    const processedPrice = parseFloat(productForm.price) || 0;
+    const processedStock = parseInt(productForm.stock) || 0;
+    const processedImg = productForm.imageUrl || 'https://images.unsplash.com/photo-1608248597481-496100c8c836?auto=format&fit=crop&q=80&w=400';
+
+    const payload = {
+      name: productForm.name,
+      price: processedPrice,
+      stock: processedStock,
+      imageUrl: processedImg,
+      category: productForm.category
+    };
 
     if (editingProduct) {
-      // Editar existente
-      setProducts(prev => prev.map(p => p.id === editingProduct.id ? {
-        ...p,
-        name: productForm.name,
-        price: parseFloat(productForm.price) || 0,
-        stock: parseInt(productForm.stock) || 0,
-        imageUrl: productForm.imageUrl || 'https://images.unsplash.com/photo-1608248597481-496100c8c836?auto=format&fit=crop&q=80&w=400',
-        category: productForm.category
-      } : p));
+      // Modificación local instantánea
+      setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...p, ...payload } : p));
       triggerNotification('Producto actualizado correctamente.');
+
+      try {
+        await fetch(`${gatewayUrl}/products/${editingProduct.id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.error("Error al actualizar producto en el servidor:", err);
+      }
     } else {
-      // Crear nuevo
-      const newProduct: Product = {
-        id: `local-${Date.now()}`,
-        name: productForm.name,
-        price: parseFloat(productForm.price) || 0,
-        stock: parseInt(productForm.stock) || 0,
-        imageUrl: productForm.imageUrl || 'https://images.unsplash.com/photo-1608248597481-496100c8c836?auto=format&fit=crop&q=80&w=400',
-        category: productForm.category
-      };
+      // Creación local con ID temporal
+      const tempId = `local-${Date.now()}`;
+      const newProduct: Product = { id: tempId, ...payload };
       setProducts(prev => [newProduct, ...prev]);
       triggerNotification('Nuevo producto agregado correctamente.');
+
+      try {
+        const response = await fetch(`${gatewayUrl}/products`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        if (response.ok) {
+          const savedProduct = await response.json();
+          // Actualiza el ID definitivo asignado por la base de datos
+          setProducts(prev => prev.map(p => p.id === tempId ? savedProduct : p));
+        }
+      } catch (err) {
+        console.error("Error al registrar producto en el servidor:", err);
+      }
     }
 
     setIsProductModalOpen(false);
@@ -146,19 +196,49 @@ export default function GestionarProductosPage() {
     setProductForm({ name: '', price: '', stock: '', imageUrl: '', category: 'Ampoules' });
   };
 
-  // Guardar nueva categoría
-  const handleSaveCategory = (e: React.FormEvent) => {
+  // Guardar nueva categoría en backend
+  const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     triggerNotification(`Categoría "${newCategoryName}" agregada con éxito.`);
     setIsCategoryModalOpen(false);
+
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${gatewayUrl}/categories`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: newCategoryName,
+          status: newCategoryStatus
+        })
+      });
+    } catch (err) {
+      console.error("Error al registrar categoría en el servidor:", err);
+    }
     setNewCategoryName('');
   };
 
-  // Eliminar producto
-  const handleDeleteProduct = (id: string, productName: string) => {
+  // Eliminar producto de forma definitiva
+  const handleDeleteProduct = async (id: string, productName: string) => {
     if (!confirm(`¿Estás seguro de que deseas eliminar "${productName}"?`)) return;
+
     setProducts(prev => prev.filter(p => p.id !== id));
     triggerNotification('Producto eliminado correctamente.');
+
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${gatewayUrl}/products/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+    } catch (err) {
+      console.error("Error al remover producto del servidor:", err);
+    }
   };
 
   const triggerNotification = (msg: string) => {
@@ -172,7 +252,6 @@ export default function GestionarProductosPage() {
 
   return (
     <div className="w-full text-slate-800">
-      {/* Contenido Principal */}
       <main className="w-full py-2 flex flex-col md:flex-row gap-8">
 
         {/* Panel Lateral de Acciones */}
@@ -251,90 +330,100 @@ export default function GestionarProductosPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
-              <div
-                key={product.id}
-                onClick={() => {
-                  if (isDeleteMode) handleDeleteProduct(product.id, product.name);
-                }}
-                className={`bg-white p-5 rounded-[28px] border shadow-sm flex flex-col justify-between items-center text-center relative group transition-all ${
-                  isDeleteMode ? 'border-rose-400 bg-rose-50/20 cursor-pointer scale-95' : 'border-slate-200/60'
-                }`}
-              >
-                {/* Botón rápido para eliminar */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteProduct(product.id, product.name);
+          {isLoading ? (
+            <div className="py-12 text-center text-xs font-bold text-slate-400 tracking-wider uppercase animate-pulse">
+              Sincronizando catálogo con el servidor...
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProducts.map((product) => (
+                <div
+                  key={product.id}
+                  onClick={() => {
+                    if (isDeleteMode) handleDeleteProduct(product.id, product.name);
                   }}
-                  className="absolute top-4 right-4 w-7 h-7 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-xs font-bold border border-rose-100"
+                  className={`bg-white p-5 rounded-[28px] border shadow-sm flex flex-col justify-between items-center text-center relative group transition-all ${
+                    isDeleteMode ? 'border-rose-400 bg-rose-50/20 cursor-pointer scale-95' : 'border-slate-200/60'
+                  }`}
                 >
-                  ✕
-                </button>
+                  {/* Botón rápido para eliminar */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteProduct(product.id, product.name);
+                    }}
+                    className="absolute top-4 right-4 w-7 h-7 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-xs font-bold border border-rose-100"
+                  >
+                    ✕
+                  </button>
 
-                <div className="w-full">
-                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
-                    {product.category || 'Skincare'}
-                  </span>
-                  <h3 className="font-extrabold text-sm text-slate-800 leading-tight mb-4 min-h-[38px] flex items-center justify-center px-2">
-                    {product.name}
-                  </h3>
+                  <div className="w-full">
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
+                      {product.category || 'Skincare'}
+                    </span>
+                    <h3 className="font-extrabold text-sm text-slate-800 leading-tight mb-4 min-h-[38px] flex items-center justify-center px-2">
+                      {product.name}
+                    </h3>
 
-                  {/* Imagen */}
-                  <div className="w-full aspect-square rounded-[20px] overflow-hidden bg-slate-50 border border-slate-100 relative mb-4">
-                    <img
-                      src={product.imageUrl}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
+                    {/* Imagen */}
+                    <div className="w-full aspect-square rounded-[20px] overflow-hidden bg-slate-50 border border-slate-100 relative mb-4">
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            'https://images.unsplash.com/photo-1608248597481-496100c8c836?auto=format&fit=crop&q=80&w=400';
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {/* Acciones e Información */}
-                <div className="w-full space-y-3">
-                  <div className="flex justify-between items-center px-2">
-                    <span className="text-xs font-bold text-slate-500">Stock: {product.stock}</span>
-                    <span className="text-sm font-extrabold text-emerald-600">${product.price.toFixed(2)}</span>
-                  </div>
+                  {/* Acciones e Información */}
+                  <div className="w-full space-y-3">
+                    <div className="flex justify-between items-center px-2">
+                      <span className="text-xs font-bold text-slate-500">Stock: {product.stock}</span>
+                      <span className="text-sm font-extrabold text-emerald-600">${product.price.toFixed(2)}</span>
+                    </div>
 
-                  <div className="flex items-center gap-2 w-full">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingProduct(product);
-                        setProductForm({
-                          name: product.name,
-                          price: product.price.toString(),
-                          stock: product.stock.toString(),
-                          imageUrl: product.imageUrl,
-                          category: product.category || 'Ampoules'
-                        });
-                        setIsProductModalOpen(true);
-                      }}
-                      className="flex-1 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-extrabold transition-all"
-                    >
-                      Info / Editar
-                    </button>
-                    <div className="flex items-center bg-slate-50 rounded-xl border border-slate-100 overflow-hidden">
+                    <div className="flex items-center gap-2 w-full">
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleUpdateStock(product.id, 1); }}
-                        className="px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingProduct(product);
+                          setProductForm({
+                            name: product.name,
+                            price: product.price.toString(),
+                            stock: product.stock.toString(),
+                            imageUrl: product.imageUrl,
+                            category: product.category || 'Ampoules'
+                          });
+                          setIsProductModalOpen(true);
+                        }}
+                        className="flex-1 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-extrabold transition-all"
                       >
-                        +
+                        Info / Editar
                       </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleUpdateStock(product.id, -1); }}
-                        className="px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
-                      >
-                        -
-                      </button>
+                      <div className="flex items-center bg-slate-50 rounded-xl border border-slate-100 overflow-hidden">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleUpdateStock(product.id, 1); }}
+                          className="px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                        >
+                          +
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleUpdateStock(product.id, -1); }}
+                          className="px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                        >
+                          -
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
 

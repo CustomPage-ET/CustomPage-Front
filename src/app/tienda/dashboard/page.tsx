@@ -15,12 +15,41 @@ export default function ClientDashboardPage() {
   const [user, setUser] = useState<UserProfile | null>(null);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    } else {
-      router.push('/login');
-    }
+    const checkAuth = async () => {
+      const savedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+
+      if (!savedUser) {
+        router.push('/login');
+        return;
+      }
+
+      // Inicializar primero con los datos locales (Fallback inmediato)
+      const localUserData = JSON.parse(savedUser);
+      setUser(localUserData);
+
+      // Intentar validar la sesión y sincronizar perfil actualizado desde el servidor
+      try {
+        const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+        const response = await fetch(`${apiURL}/api/auth/me`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const serverUserData = await response.json();
+          setUser(serverUserData);
+          localStorage.setItem('user', JSON.stringify(serverUserData));
+        }
+      } catch (error) {
+        console.warn("API Gateway inalcanzable. Manteniendo datos de sesión mockeados en LocalStorage:", error);
+      }
+    };
+
+    checkAuth();
   }, [router]);
 
   const handleLogout = () => {

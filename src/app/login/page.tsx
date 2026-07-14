@@ -24,7 +24,7 @@ export default function LoginPage() {
   const [fontSize, setFontSize] = useState('16px');             // Tamaño base de la fuente
   const [fontColor, setFontColor] = useState('#4B5563');        // Color general de la fuente
 
-  // Función aislada para sincronizar el estado visual con localStorage in tiempo real
+  // Función aislada para sincronizar el estado visual con localStorage en tiempo real
   const syncLocalStorageData = () => {
     if (typeof window !== 'undefined') {
       setLogoUrl(localStorage.getItem('web_logo') || '/logo-clean.png');
@@ -69,7 +69,7 @@ export default function LoginPage() {
     setError(null);
     setIsLoading(true);
 
-    const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+    const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
     // 1. CREDENCIALES DE BYPASS OFFLINE (LOCALES)
     const BYPASS_EMAIL = 'admin@custompage.com';
@@ -105,7 +105,7 @@ export default function LoginPage() {
 
     // 2. CONEXIÓN REAL AL BACKEND
     try {
-      const response = await fetch(`${gatewayUrl}/auth/login`, {
+      const response = await fetch(`${apiURL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,6 +133,7 @@ export default function LoginPage() {
 
       router.refresh();
     } catch (err: any) {
+      console.warn("Error en la conexión con el servidor. Se mantienen accesos offline locales.", err);
       setError(
         err.message === 'Failed to fetch'
           ? 'El backend no responde. Usa las credenciales offline de Admin o Cliente.'
@@ -148,8 +149,8 @@ export default function LoginPage() {
       className="min-h-screen flex flex-col justify-between p-6 relative overflow-hidden animate-dynamic-bg"
       style={{
         fontFamily: fontFamily,
-        fontSize: fontSize, // Aplica el tamaño dinámico del panel
-        color: fontColor   // Aplica el color de fuente general del panel
+        fontSize: fontSize,
+        color: fontColor
       }}
     >
       <header className="w-full max-w-7xl mx-auto flex justify-between items-center z-10">
@@ -163,7 +164,7 @@ export default function LoginPage() {
         <button
           onClick={() => router.push('/')}
           className="px-5 py-2.5 rounded-full bg-white/80 text-xs font-bold hover:bg-white active:scale-95 border border-indigo-100/50 shadow-sm transition-all cursor-pointer"
-          style={{ color: mainTextColor }} // El botón de volver atrás usa el color de texto principal
+          style={{ color: mainTextColor }}
         >
           ← Volver atrás
         </button>
@@ -172,12 +173,12 @@ export default function LoginPage() {
       <main className="flex-1 flex items-center justify-center z-10 py-10">
         <div
           className="w-full max-w-md backdrop-blur-md rounded-[32px] p-8 border border-white/60 shadow-lg"
-          style={{ backgroundColor: boxBgColor }} // Color personalizado de casillas/cuadrados de fondo
+          style={{ backgroundColor: boxBgColor }}
         >
           <div className="mb-6 text-center">
             <h1
               className="text-3xl font-extrabold tracking-tight"
-              style={{ color: mainTextColor }} // Color de títulos principales
+              style={{ color: mainTextColor }}
             >
               Iniciar Sesión
             </h1>
@@ -220,7 +221,7 @@ export default function LoginPage() {
                 type="submit"
                 disabled={isLoading}
                 className="w-full py-3.5 text-white font-bold text-sm rounded-full shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer disabled:opacity-50"
-                style={{ backgroundColor: buttonColor }} // Color personalizado para barra de botones
+                style={{ backgroundColor: buttonColor }}
               >
                 {isLoading ? 'Cargando...' : 'Iniciar Sesión'}
               </button>

@@ -39,7 +39,7 @@ export default function GestionarReportesPage() {
   const [activeReport, setActiveReport] = useState<string | null>(null);
   const [reportTitle, setReportTitle] = useState('');
 
-  const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+  const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
   // Comunicación exclusiva con el API Gateway
   const handleFetchReport = async (reportType: string, title: string) => {
@@ -50,8 +50,8 @@ export default function GestionarReportesPage() {
     try {
       const token = localStorage.getItem('token');
 
-      // La petición va directo al API Gateway (ej: https://api.tuempresa.com/reports/ordenes)
-      const response = await fetch(`${gatewayUrl}/reports/${reportType}`, {
+      // Petición al API Gateway centralizado
+      const response = await fetch(`${apiURL}/api/reports/${reportType}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -61,8 +61,9 @@ export default function GestionarReportesPage() {
       if (!response.ok) throw new Error('Error en la respuesta de la API');
       const data = await response.json();
 
-      setReportData(data.length > 0 ? data : FALLBACK_DATA[reportType]);
+      setReportData(data && data.length > 0 ? data : FALLBACK_DATA[reportType]);
     } catch (err) {
+      console.warn(`Error al conectar con el microservicio de reportes para [${reportType}]. Usando fallback local.`, err);
       setReportData(FALLBACK_DATA[reportType] || []);
     } finally {
       setIsLoading(false);
@@ -86,7 +87,7 @@ export default function GestionarReportesPage() {
     <div className="w-full text-slate-800">
       <main className="w-full py-2 flex flex-col gap-6">
 
-        {/* Fila de Tarjetas idénticas a la imagen */}
+        {/* Fila de Tarjetas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
 
           {/* Reporte de Productos */}
@@ -166,7 +167,7 @@ export default function GestionarReportesPage() {
 
         </div>
 
-        {/* Panel de visualización de datos obtenidos desde el API Gateway */}
+        {/* Panel de visualización de datos obtenidos */}
         {activeReport && (
           <div className="w-full mt-6 bg-white/80 backdrop-blur-md rounded-[28px] border border-slate-200 p-6 shadow-sm">
             <div className="flex justify-between items-center mb-4">

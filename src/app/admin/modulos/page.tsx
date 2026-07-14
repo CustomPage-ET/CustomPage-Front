@@ -20,7 +20,10 @@ export default function GestionarModulosPage() {
   const [formName, setFormName] = useState('');
   const [formStatus, setFormStatus] = useState<'visible' | 'hidden'>('visible');
 
-  const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+  // Estado para seguir el índice del elemento que se está arrastrando
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:8080';
 
   // Cargar módulos al iniciar
   useEffect(() => {
@@ -42,6 +45,49 @@ export default function GestionarModulosPage() {
       setError(err.message || 'Error al conectar con el servidor');
     }
   };
+
+  // --- LÓGICA DE DRAG & DROP (HTML5 NATIVO) ---
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault(); // Necesario para permitir el drop
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    // Reordenación visual interactiva en caliente
+    const currentModulos = [...modulos];
+    const draggedItem = currentModulos[draggedIndex];
+
+    // Remueve de la posición original e inserta en la nueva posición
+    currentModulos.splice(draggedIndex, 1);
+    currentModulos.splice(index, 0, draggedItem);
+
+    setDraggedIndex(index);
+    setModulos(currentModulos);
+  };
+
+  const handleDragEnd = async () => {
+    setDraggedIndex(null);
+
+    // Mapea el nuevo orden de los IDs para enviarlo al backend si tu backend lo soporta
+    const orderPayload = modulos.map((m, idx) => ({ id: m.id, position: idx }));
+
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${gatewayUrl}/modules/reorder`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ order: orderPayload })
+      });
+    } catch (err) {
+      console.error("Error al persistir el nuevo orden en el servidor:", err);
+    }
+  };
+  // --------------------------------------------
 
   const handleOpenCreateModal = () => {
     setEditingModule(null);
@@ -113,7 +159,7 @@ export default function GestionarModulosPage() {
   };
 
   return (
-    <div className="w-full text-brand-dark">
+    <div className="w-full text-slate-800">
       {/* Contenido Principal */}
       <main className="w-full flex flex-col">
 
@@ -122,7 +168,7 @@ export default function GestionarModulosPage() {
           <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">Módulos</h2>
           <button
             onClick={handleOpenCreateModal}
-            className="px-5 py-2.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+            className="px-5 py-2.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
           >
             <span className="text-sm">+</span> Añadir nueva categoría
           </button>
@@ -145,17 +191,28 @@ export default function GestionarModulosPage() {
                 <th className="py-4 px-6 w-48 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-indigo-50/40 text-sm font-semibold text-brand-dark">
+            <tbody className="divide-y divide-indigo-50/40 text-sm font-semibold text-slate-700">
               {modulos.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-10 text-center text-brand-muted text-xs">
+                  <td colSpan={4} className="py-10 text-center text-slate-400 text-xs font-bold">
                     No se han encontrado categorías o módulos creados.
                   </td>
                 </tr>
               ) : (
-                modulos.map((modulo) => (
-                  <tr key={modulo.id} className="hover:bg-white/40 transition-colors">
-                    <td className="py-4 px-6 text-brand-muted font-bold tracking-widest cursor-grab active:cursor-grabbing select-none text-base">
+                modulos.map((modulo, index) => (
+                  <tr
+                    key={modulo.id}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragEnd={handleDragEnd}
+                    className={`transition-colors select-none ${
+                      draggedIndex === index
+                        ? 'bg-indigo-50/50 opacity-50'
+                        : 'hover:bg-white/40 bg-white/10'
+                    }`}
+                  >
+                    <td className="py-4 px-6 text-slate-400 font-bold tracking-widest cursor-grab active:cursor-grabbing text-base">
                       :::
                     </td>
                     <td className="py-4 px-6 font-extrabold text-indigo-950">
@@ -196,22 +253,22 @@ export default function GestionarModulosPage() {
 
       {/* Modal para Crear y Editar */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/10 backdrop-blur-sm p-4">
-          <div className="bg-white/95 backdrop-blur-md rounded-[32px] p-8 max-w-md w-full border border-white/60 shadow-xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[32px] p-8 max-w-md w-full border border-slate-100 shadow-xl relative">
             <button
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 text-brand-muted hover:text-brand-dark text-lg font-bold cursor-pointer"
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer"
             >
               ✕
             </button>
 
-            <h3 className="text-xl font-extrabold mb-6">
+            <h3 className="text-xl font-extrabold mb-6 tracking-tight text-slate-900">
               {editingModule ? 'Editar Módulo' : 'Añadir nueva categoría'}
             </h3>
 
             <form onSubmit={handleSaveModulo} className="space-y-5">
               <div>
-                <label className="block text-xs font-bold text-brand-muted mb-1.5 uppercase tracking-wide">
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
                   Nombre de la Categoría:
                 </label>
                 <input
@@ -220,18 +277,18 @@ export default function GestionarModulosPage() {
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="Ej: Promociones, Destacados"
-                  className="w-full px-4 py-3 rounded-2xl bg-white border border-indigo-100 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/35 text-brand-dark font-medium"
+                  className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 text-slate-800 font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-brand-muted mb-1.5 uppercase tracking-wide">
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
                   Estado Inicial:
                 </label>
                 <select
                   value={formStatus}
                   onChange={(e) => setFormStatus(e.target.value as 'visible' | 'hidden')}
-                  className="w-full px-4 py-3 rounded-2xl bg-white border border-indigo-100 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/35 text-brand-dark font-semibold"
+                  className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 text-slate-800 font-semibold"
                 >
                   <option value="visible">☀️ Visible</option>
                   <option value="hidden">🌙 Oculto</option>
@@ -242,7 +299,7 @@ export default function GestionarModulosPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-3 bg-brand-muted/10 hover:bg-brand-muted/20 text-brand-dark font-bold text-xs rounded-full transition-all cursor-pointer"
+                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-full transition-all cursor-pointer"
                 >
                   Cancelar
                 </button>

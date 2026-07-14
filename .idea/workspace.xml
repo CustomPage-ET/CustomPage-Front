@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="2cd9798a-f5e6-4fb2-9618-4f837bdd0b5a" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/src/config/api.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/admin/contenido/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/contenido/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/admin/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/dashboard/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/admin/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/admin/menu/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/menu/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/admin/modulos/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/modulos/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/admin/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/admin/productos/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/productos/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/admin/promociones/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/promociones/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/admin/reportes/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/reportes/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/globals.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/login/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/login/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/register/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/register/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/tienda/carrito/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/tienda/carrito/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/tienda/categorias/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/tienda/categorias/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/tienda/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/tienda/dashboard/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/tienda/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/tienda/layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/tienda/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/tienda/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/tienda/promociones/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/tienda/promociones/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/context/ThemeContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/context/ThemeContext.tsx" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;VictoriaCast08&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/CustomPage-ET/CustomPage-Front.git&quot;,
+    &quot;accountId&quot;: &quot;9c8ffb4d-cabe-4845-8ce8-7399e9d8feb4&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 8
+}</component>
+  <component name="ProjectId" id="3GR9dnKivsvnwM22OYXzI58me6y" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feature/jose&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\victo\OneDrive\Documentos\GitHub\CustomPage-Front\custompage-frontend\src\app\tienda" />
+      <recent name="C:\Users\victo\OneDrive\Documentos\GitHub\CustomPage-Front\custompage-frontend\public" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-cffe25b9f5b3-intellij.indexing.shared.core-IU-253.28294.334" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="2cd9798a-f5e6-4fb2-9618-4f837bdd0b5a" name="Changes" comment="" />
+      <created>1783923603736</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1783923603736</updated>
+    </task>
+    <servers />
+  </component>
+</project>

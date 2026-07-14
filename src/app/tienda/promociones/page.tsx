@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 
 interface Promocion {
@@ -19,6 +19,35 @@ const MOCK_PROMOS: Promocion[] = [
 
 export default function PromocionesPage() {
   const { addToCart } = useCart();
+  const [promociones, setPromociones] = useState<Promocion[]>(MOCK_PROMOS);
+
+  useEffect(() => {
+    const fetchPromociones = async () => {
+      try {
+        const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+        const response = await fetch(`${apiURL}/api/marketing/promotions`);
+        if (!response.ok) throw new Error('Error al conectar con el servidor de marketing');
+
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const mappedData = data.map((p: any) => ({
+            id: p.id || String(p.promoId),
+            name: p.name || p.nombre,
+            originalPrice: Number(p.originalPrice || p.precioOriginal),
+            discountPrice: Number(p.discountPrice || p.precioDescuento),
+            stock: Number(p.stock !== undefined ? p.stock : 5),
+            imageUrl: p.imageUrl || p.imagenUrl || 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=300'
+          }));
+          setPromociones(mappedData);
+        }
+      } catch (error) {
+        console.warn("API Gateway inalcanzable para marketing. Utilizando respaldo mockeado:", error);
+        setPromociones(MOCK_PROMOS);
+      }
+    };
+
+    fetchPromociones();
+  }, []);
 
   return (
     <div className="w-full flex flex-col gap-6">
@@ -30,7 +59,7 @@ export default function PromocionesPage() {
       </div>
 
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8 mt-2">
-        {MOCK_PROMOS.map((prod) => (
+        {promociones.map((prod) => (
           <div key={prod.id} className="flex flex-col items-center relative">
             {/* Etiqueta de Descuento */}
             <div className="absolute top-10 right-4 bg-rose-500 text-white font-black text-[10px] px-2 py-1 rounded-lg z-10 border border-slate-900 shadow-sm rotate-12">

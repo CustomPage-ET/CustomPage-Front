@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 
 interface CatProducto {
   id: string;
   name: string;
   category: 'Serums' | 'Tónicos' | 'Cremas';
-  price: 21990 | 28900 | 23400;
+  price: number;
   stock: number;
   imageUrl: string;
 }
@@ -21,10 +21,40 @@ const MOCK_CATEGORIZADOS: CatProducto[] = [
 export default function CategoriasPage() {
   const { addToCart } = useCart();
   const [selectedCategory, setSelectedCategory] = useState<'Todos' | 'Serums' | 'Tónicos' | 'Cremas'>('Todos');
+  const [productos, setProductos] = useState<CatProducto[]>(MOCK_CATEGORIZADOS);
+
+  useEffect(() => {
+    const fetchProductos = async () => {
+      try {
+        const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+        const response = await fetch(`${apiURL}/api/products`);
+        if (!response.ok) throw new Error('Error al conectar con el servidor de productos');
+
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) {
+          // Mapeo seguro de la respuesta para cumplir con la interfaz requerida
+          const mappedData = data.map((p: any) => ({
+            id: p.id || String(p.productId),
+            name: p.name || p.nombre,
+            category: p.category || p.categoria,
+            price: Number(p.price || p.precio),
+            stock: Number(p.stock !== undefined ? p.stock : 10),
+            imageUrl: p.imageUrl || p.imagenUrl || 'https://images.unsplash.com/photo-1608248597481-496100c80836?q=80&w=300'
+          }));
+          setProductos(mappedData);
+        }
+      } catch (error) {
+        console.warn("API Gateway inalcanzable para productos. Utilizando respaldo mockeado:", error);
+        setProductos(MOCK_CATEGORIZADOS);
+      }
+    };
+
+    fetchProductos();
+  }, []);
 
   const filtered = selectedCategory === 'Todos'
-    ? MOCK_CATEGORIZADOS
-    : MOCK_CATEGORIZADOS.filter(p => p.category === selectedCategory);
+    ? productos
+    : productos.filter(p => p.category === selectedCategory);
 
   return (
     <div className="w-full flex flex-col gap-6">

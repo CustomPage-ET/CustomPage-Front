@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface Promotion {
   id: string;
@@ -26,8 +26,9 @@ const INITIAL_PROMOTIONS: Promotion[] = [
 
 export default function GestionarPromocionesPage() {
   // Estados principales
-  const [promotions, setPromotions] = useState<Promotion[]>(INITIAL_PROMOTIONS);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Estados de control para Modales
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
@@ -39,56 +40,127 @@ export default function GestionarPromocionesPage() {
     imageUrl: '',
   });
 
+  const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+  // Cargar promociones al inicializar
+  useEffect(() => {
+    const fetchPromotions = async () => {
+      setIsLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${apiURL}/api/promotions`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (!response.ok) throw new Error();
+        const data = await response.json();
+        setPromotions(data.length > 0 ? data : INITIAL_PROMOTIONS);
+      } catch (err) {
+        console.warn("Servidor inalcanzable. Cargando promociones locales de prueba.");
+        setPromotions(INITIAL_PROMOTIONS);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPromotions();
+  }, [apiURL]);
+
   // Notificaciones instantáneas
   const triggerNotification = (msg: string) => {
     setSuccessMessage(msg);
     setTimeout(() => setSuccessMessage(null), 3000);
   };
 
-  // Botón: Publicar / Despublicar (Alterna el estado visual)
-  const handleTogglePublish = (id: string) => {
+  // Botón: Publicar / Despublicar (Persiste en backend)
+  const handleTogglePublish = async (id: string) => {
+    const currentPromo = promotions.find(p => p.id === id);
+    if (!currentPromo) return;
+
+    const nextState = !currentPromo.isPublished;
+
+    // Actualización optimista local
     setPromotions((prev) =>
-      prev.map((p) => {
-        if (p.id === id) {
-          const nextState = !p.isPublished;
-          triggerNotification(
-            nextState ? 'Promoción publicada en la tienda.' : 'Promoción ocultada.'
-          );
-          return { ...p, isPublished: nextState };
-        }
-        return p;
-      })
+      prev.map((p) => p.id === id ? { ...p, isPublished: nextState } : p)
     );
+    triggerNotification(nextState ? 'Promoción publicada en la tienda.' : 'Promoción ocultada.');
+
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${apiURL}/api/promotions/${id}/toggle-publish`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ isPublished: nextState })
+      });
+    } catch (err) {
+      console.warn("No se pudo sincronizar el estado de publicación con el servidor.");
+    }
   };
 
-  // Botón: Guardar (Crea nueva o modifica existente)
-  const handleSavePromotion = (e: React.FormEvent) => {
+  // Botón: Guardar (Crea nueva o modifica existente en Backend)
+  const handleSavePromotion = async (e: React.FormEvent) => {
     e.preventDefault();
+    const token = localStorage.getItem('token');
+    const processedImageUrl = promoForm.imageUrl || 'https://via.placeholder.com/400';
 
     if (editingPromo) {
-      // Modificar existente
+      // Modificar existente localmente
       setPromotions((prev) =>
         prev.map((p) =>
           p.id === editingPromo.id
-            ? {
-                ...p,
-                title: promoForm.title,
-                imageUrl: promoForm.imageUrl || 'https://via.placeholder.com/400',
-              }
+            ? { ...p, title: promoForm.title, imageUrl: processedImageUrl }
             : p
         )
       );
       triggerNotification('Promoción modificada con éxito.');
+
+      try {
+        await fetch(`${apiURL}/api/promotions/${editingPromo.id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ title: promoForm.title, imageUrl: processedImageUrl })
+        });
+      } catch (err) {
+        console.error("Error al guardar cambios en el servidor:", err);
+      }
     } else {
-      // Crear nueva promoción
+      // Crear nueva promoción localmente de forma provisional
+      const tempId = `promo-${Date.now()}`;
       const newPromo: Promotion = {
-        id: `promo-${Date.now()}`,
+        id: tempId,
         title: promoForm.title,
-        imageUrl: promoForm.imageUrl || 'https://via.placeholder.com/400',
+        imageUrl: processedImageUrl,
         isPublished: false,
       };
+
       setPromotions((prev) => [...prev, newPromo]);
       triggerNotification('Nueva promoción creada correctamente.');
+
+      try {
+        const response = await fetch(`${apiURL}/api/promotions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ title: promoForm.title, imageUrl: processedImageUrl })
+        });
+        if (response.ok) {
+          const savedPromo = await response.json();
+          // Reemplazar la promo provisional con la real del backend (con su ID real)
+          setPromotions((prev) => prev.map(p => p.id === tempId ? savedPromo : p));
+        }
+      } catch (err) {
+        console.error("Error al registrar nueva promoción en el servidor:", err);
+      }
     }
 
     setIsPromoModalOpen(false);
@@ -97,15 +169,27 @@ export default function GestionarPromocionesPage() {
   };
 
   // Botón: Eliminar
-  const handleDeletePromotion = (id: string, title: string) => {
+  const handleDeletePromotion = async (id: string, title: string) => {
     if (!confirm(`¿Estás seguro de que deseas eliminar la promoción "${title}"?`)) return;
+
     setPromotions((prev) => prev.filter((p) => p.id !== id));
     triggerNotification('Promoción eliminada.');
+
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${apiURL}/api/promotions/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+    } catch (err) {
+      console.error("Error al eliminar la promoción del servidor:", err);
+    }
   };
 
   return (
     <div className="w-full text-slate-800">
-      {/* Contenedor del panel de Promociones */}
       <main className="w-full py-2 flex flex-col gap-4">
         <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">Promociones</h2>
 
@@ -115,79 +199,85 @@ export default function GestionarPromocionesPage() {
           </div>
         )}
 
-        <div className="flex flex-wrap items-start gap-8 mt-4">
-          {/* Mapeo dinámico de promociones existentes */}
-          {promotions.map((promo) => (
-            <div key={promo.id} className="flex flex-col items-center gap-3">
-              {/* Marco de Imagen de la Promoción */}
-              <div className="w-[280px] h-[280px] rounded-2xl border-2 border-slate-800 overflow-hidden relative shadow-md bg-white">
-                <img
-                  src={promo.imageUrl}
-                  alt={promo.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400';
-                  }}
-                />
-                {!promo.isPublished && (
-                  <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
-                    <span className="bg-slate-900 text-white font-bold text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider">
-                      No Publicada (Borrador)
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Fila de Botones: Publicar, Modificar, Eliminar */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleTogglePublish(promo.id)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold shadow-sm transition-all border ${
-                    promo.isPublished
-                      ? 'bg-emerald-500 text-white border-emerald-600 hover:bg-emerald-600'
-                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  {promo.isPublished ? 'Publicado' : 'Publicar'}
-                </button>
-
-                <button
-                  onClick={() => {
-                    setEditingPromo(promo);
-                    setPromoForm({ title: promo.title, imageUrl: promo.imageUrl });
-                    setIsPromoModalOpen(true);
-                  }}
-                  className="px-4 py-1.5 rounded-full bg-white border border-slate-300 text-slate-800 text-xs font-bold shadow-sm hover:bg-slate-50 transition-all"
-                >
-                  Modificar
-                </button>
-
-                <button
-                  onClick={() => handleDeletePromotion(promo.id, promo.title)}
-                  className="px-4 py-1.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold shadow-sm transition-all"
-                >
-                  Eliminar
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {/* Tarjeta interactiva: Crear Promoción */}
-          <div className="flex flex-col items-center justify-center w-[280px] h-[280px] bg-white/40 border-2 border-dashed border-slate-400 rounded-3xl gap-4 p-6 text-center">
-            <button
-              onClick={() => {
-                setEditingPromo(null);
-                setPromoForm({ title: '', imageUrl: '' });
-                setIsPromoModalOpen(true);
-              }}
-              className="w-16 h-16 bg-emerald-500 hover:bg-emerald-600 rounded-2xl flex items-center justify-center text-white text-3xl font-bold shadow-sm transition-transform active:scale-95 cursor-pointer"
-            >
-              +
-            </button>
-            <span className="text-sm font-extrabold text-slate-700">Crear promoción</span>
+        {isLoading ? (
+          <div className="py-12 text-center text-xs font-bold text-slate-400 tracking-wider uppercase animate-pulse">
+            Sincronizando promociones con el servidor...
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-wrap items-start gap-8 mt-4">
+            {/* Mapeo dinámico de promociones existentes */}
+            {promotions.map((promo) => (
+              <div key={promo.id} className="flex flex-col items-center gap-3">
+                {/* Marco de Imagen de la Promoción */}
+                <div className="w-[280px] h-[280px] rounded-2xl border-2 border-slate-800 overflow-hidden relative shadow-md bg-white">
+                  <img
+                    src={promo.imageUrl}
+                    alt={promo.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400';
+                    }}
+                  />
+                  {!promo.isPublished && (
+                    <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
+                      <span className="bg-slate-900 text-white font-bold text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        No Publicada (Borrador)
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Fila de Botones: Publicar, Modificar, Eliminar */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleTogglePublish(promo.id)}
+                    className={`px-4 py-1.5 rounded-full text-xs font-bold shadow-sm transition-all border ${
+                      promo.isPublished
+                        ? 'bg-emerald-500 text-white border-emerald-600 hover:bg-emerald-600'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {promo.isPublished ? 'Publicado' : 'Publicar'}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setEditingPromo(promo);
+                      setPromoForm({ title: promo.title, imageUrl: promo.imageUrl });
+                      setIsPromoModalOpen(true);
+                    }}
+                    className="px-4 py-1.5 rounded-full bg-white border border-slate-300 text-slate-800 text-xs font-bold shadow-sm hover:bg-slate-50 transition-all"
+                  >
+                    Modificar
+                  </button>
+
+                  <button
+                    onClick={() => handleDeletePromotion(promo.id, promo.title)}
+                    className="px-4 py-1.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold shadow-sm transition-all"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {/* Tarjeta interactiva: Crear Promoción */}
+            <div className="flex flex-col items-center justify-center w-[280px] h-[280px] bg-white/40 border-2 border-dashed border-slate-400 rounded-3xl gap-4 p-6 text-center">
+              <button
+                onClick={() => {
+                  setEditingPromo(null);
+                  setPromoForm({ title: '', imageUrl: '' });
+                  setIsPromoModalOpen(true);
+                }}
+                className="w-16 h-16 bg-emerald-500 hover:bg-emerald-600 rounded-2xl flex items-center justify-center text-white text-3xl font-bold shadow-sm transition-transform active:scale-95 cursor-pointer"
+              >
+                +
+              </button>
+              <span className="text-sm font-extrabold text-slate-700">Crear promoción</span>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* MODAL INTEGRADO: CREAR / MODIFICAR PROMOCIÓN */}
