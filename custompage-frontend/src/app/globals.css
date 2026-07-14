@@ -1,20 +1,16 @@
 @import "tailwindcss";
 
 @theme {
-  /* Registramos los colores de la paleta morada sobria en el motor de Tailwind v4 */
-  --color-brand-primary: #6366f1;
-  --color-brand-accent: #10b981;
-  --color-brand-dark: #1e1b4b;
-  --color-brand-muted: #6b6686;
+  --color-brand-primary: #6366f1;   /* Morado / Índigo elegante */
+  --color-brand-light: #e0e7ff;     /* Lavanda pastel suave */
+  --color-brand-dark: #1e1b4b;      /* Morado oscuro profundo */
+  --color-brand-accent: #10b981;    /* Verde esmeralda */
+  --color-brand-accent-light: #d1fae5; /* Verde pastel suave */
   --color-brand-card: #ffffff;
-
-  /* Registramos la sombra suave corporativa */
-  --shadow-soft: 0 4px 20px -2px rgba(99, 102, 241, 0.05), 0 2px 8px -1px rgba(0, 0, 0, 0.02);
 }
 
-/* Configuraciones de reinicio básicas para el navegador */
 :root {
-  --background: #fcfbfe;
+  --background: #fdfdfd;
   --foreground: #1e1b4b;
 }
 
@@ -22,7 +18,24 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+/* Animación de fondo dinámico que se mueve suavemente */
+@keyframes gradient-bg {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-dynamic-bg {
+  background: linear-gradient(-45deg, #e0e7ff, #d1fae5, #e0f2fe, #f5f3ff);
+  background-size: 400% 400%;
+  animation: gradient-bg 15s ease infinite;
 }
