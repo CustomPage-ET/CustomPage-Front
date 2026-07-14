@@ -4,30 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2cd9798a-f5e6-4fb2-9618-4f837bdd0b5a" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/config/api.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/admin/contenido/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/contenido/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/admin/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/dashboard/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/admin/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/admin/menu/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/menu/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/admin/modulos/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/modulos/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/admin/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/admin/productos/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/productos/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/admin/promociones/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/promociones/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/admin/reportes/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/admin/reportes/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/globals.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/login/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/login/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/register/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/register/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/tienda/carrito/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/tienda/carrito/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/tienda/categorias/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/tienda/categorias/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/tienda/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/tienda/dashboard/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/tienda/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/tienda/layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/tienda/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/tienda/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/tienda/promociones/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/tienda/promociones/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/context/ThemeContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/context/ThemeContext.tsx" afterDir="false" />
-    </list>
+    <list default="true" id="2cd9798a-f5e6-4fb2-9618-4f837bdd0b5a" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
